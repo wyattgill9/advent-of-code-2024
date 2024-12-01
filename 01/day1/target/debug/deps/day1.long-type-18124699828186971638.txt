@@ -1,1 +1,0 @@
-Map<Flatten<std::io::Lines<BufReader<File>>>, {closure@src\main.rs:8:14: 8:17}>
