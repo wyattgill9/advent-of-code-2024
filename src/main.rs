@@ -1,63 +1,72 @@
-use std::io::BufRead;
+use std::collections::HashMap;
 use std::time::Instant;
 
 fn main() {
     let total_start = Instant::now();
-    
-    // Parsing phase
-    let parse_start = Instant::now();
-    let (nums1, nums2): (Vec<_>, Vec<_>) = std::fs::File::open("input.txt")
-        .map(|f| std::io::BufReader::new(f).lines())
-        .unwrap()
-        .flatten()
-        .map(|l| {
-            let bytes = l.as_bytes();
-            
-            let mut n1 = 0u32;
-            for &b in bytes.iter().take_while(|&&b| b != b' ') {
-                if b.is_ascii_digit() {
-                    n1 = n1 * 10 + (b - b'0') as u32;
-                }
-            }
+    let input = std::fs::read_to_string("input.txt").unwrap();
 
-            let mut n2 = 0u32;
-            for &b in bytes.iter().skip_while(|&&b| b != b' ').skip(1) {
-                if b.is_ascii_digit() {
-                    n2 = n2 * 10 + (b - b'0') as u32;
-                }
-            }
-            
-            (n1, n2)
-        })
-        .unzip();
-    let parse_time = parse_start.elapsed();
-    
-    // Distance calculation phase
-    let dist_start = Instant::now();
-    let (mut s1, mut s2) = (nums1.clone(), nums2.clone());
-    s1.sort_unstable();
-    s2.sort_unstable();
-    let dist: u32 = s1.iter().zip(&s2)
-        .map(|(&a, &b)| if a > b { a - b } else { b - a })
-        .sum();
-    let dist_time = dist_start.elapsed();
-    
-    let score_start = Instant::now();
-    let mut counts = [0u32; 100_000];
-    nums2.iter().for_each(|&n| counts[n as usize] += 1);
-    let score: u64 = nums1.iter()
-        .map(|&n| n as u64 * counts[n as usize] as u64)
-        .sum();
-    let score_time = score_start.elapsed();
-    
+    let part1_start = Instant::now();
+    let part1_result = part1(&input);
+    let part1_time = part1_start.elapsed();
+
+
+    let part2_start = Instant::now();
+    let part2_result = part2(&input);
+    let part2_time = part2_start.elapsed();
+
     let total_time = total_start.elapsed();
 
-    println!("{}", dist);
-    println!("{}", score);
-    
+    println!("\nResults:");
+    println!("Part 1 (distance): {}", part1_result);
+    println!("Part 2 (similarity): {}", part2_result);
+
     println!("\nTiming breakdown:");
-    println!("Parsing time:   {:?} ({:.1}%)", parse_time, 100.0 * parse_time.as_secs_f64() / total_time.as_secs_f64());
-    println!("Distance time:  {:?} ({:.1}%)", dist_time, 100.0 * dist_time.as_secs_f64() / total_time.as_secs_f64());
-    println!("Score time:     {:?} ({:.1}%)", score_time, 100.0 * score_time.as_secs_f64() / total_time.as_secs_f64());
+    println!(
+        "Part 1 time:    {:?} ({:.1}%)",
+        part1_time,
+        100.0 * part1_time.as_secs_f64() / total_time.as_secs_f64()
+    );
+    println!(
+        "Part 2 time:    {:?} ({:.1}%)",
+        part2_time,
+        100.0 * part2_time.as_secs_f64() / total_time.as_secs_f64()
+    );
     println!("Total time:     {:?}", total_time);
+}
+
+fn part1(input: &str) -> u64 {
+    let (mut left, mut right): (Vec<u64>, Vec<u64>) = input.lines().map(|line| {
+        let (a, b) = line.split_once("   ").unwrap();
+        (a.parse::<u64>().unwrap(), b.parse::<u64>().unwrap())
+    }).unzip();
+    left.sort();
+    right.sort();
+    left.into_iter().zip(right).map(|(a, b)| a.abs_diff(b)).sum()
+}
+
+fn part2(input: &str) -> u64 {
+    let (container1, container2): (Vec<u64>, Vec<u64>) = input.lines().map(|line| {
+        let (a, b) = line.split_once("   ").unwrap();
+        (a.parse::<u64>().unwrap(), b.parse::<u64>().unwrap())
+    }).unzip();
+
+    solution(container1, container2)
+}
+
+fn build_presence_map(source: Vec<u64>) -> HashMap<u64, u64> {
+    let mut indexes = HashMap::<u64, u64>::new();
+
+    source.into_iter().for_each(|curr| {
+        *indexes.entry(curr).or_insert(0) += 1;
+    });
+
+    indexes
+}
+
+fn solution(container1: Vec<u64>, container2: Vec<u64>) -> u64 {
+    let presence = build_presence_map(container2);
+
+    container1.into_iter().fold(0, |acc, curr| {
+        acc + curr * presence.get(&curr).cloned().unwrap_or(0)
+    })
 }
