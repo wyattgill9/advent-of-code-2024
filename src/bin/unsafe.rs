@@ -1,5 +1,10 @@
 use std::time::Instant;
-use rustc_hash::FxHashSet;
+use heapless::Vec as HeaplessVec;
+use std::arch::x86_64::{
+    _mm_set_epi16, _mm_sub_epi16, _mm_set1_epi16,
+    _mm_madd_epi16
+};
+use std::mem;
 
 fn mean_and_stddev(data: &[std::time::Duration]) -> (std::time::Duration, std::time::Duration) {
     let sum: std::time::Duration = data.iter().sum();
@@ -132,44 +137,146 @@ fn part1(input: &str) -> u64 {
         .sum()
 }
 
-fn part2(input: &str) -> u64 {
-    let (container1, container2) = parse_input_fast(input).unwrap();
-    let seen = container1.iter().copied().collect::<FxHashSet<_>>();
+fn part2(_input: &str) -> u64 {
+    static DATA: &[u8] = include_bytes!("../../input.txt");
+    
+    let (container1, container2) = unsafe { parse_input_fast_static(DATA).unwrap() };
+    let mut map = RobinHoodMap::<100000>::default();
+
+    for &val in &container1 {
+        map.insert(val);
+    }
+    
     container2.iter()
-        .fold(0, |acc, &val| acc + val * seen.contains(&val) as u32) as u64
+        .fold(0, |acc, &val| acc + val * map.get(val) as u32) as u64
+}
+
+struct RobinHoodMap<const N: usize> {
+    keys: [u32; N],
+    counts: [u8; N],
+    used: [bool; N],
+}
+
+impl<const N: usize> Default for RobinHoodMap<N> {
+    fn default() -> Self {
+        Self {
+            keys: [0; N],
+            counts: [0; N],
+            used: [false; N],
+        }
+    }
+}
+
+impl<const N: usize> RobinHoodMap<N> {
+    #[inline]
+    fn insert(&mut self, mut key: u32) {
+        let mut idx = (key as usize) % N;
+        let mut dist = 0;
+        
+        loop {
+            if !self.used[idx] {
+                self.keys[idx] = key;
+                self.counts[idx] = 1;
+                self.used[idx] = true;
+                return;
+            }
+            if self.keys[idx] == key {
+                self.counts[idx] += 1;
+                return;
+            }
+            
+            let existing_dist = ((idx + N - ((self.keys[idx] as usize) % N)) % N) as i32;
+            if dist > existing_dist {
+                let tmp_key = self.keys[idx];
+                let tmp_count = self.counts[idx];
+                self.keys[idx] = key;
+                self.counts[idx] = 1;
+                key = tmp_key;
+                self.counts[idx] = tmp_count;
+            }
+            
+            idx = (idx + 1) % N;
+            dist += 1;
+        }
+    }
+
+    #[inline]
+    fn get(&self, key: u32) -> u8 {
+        let mut idx = (key as usize) % N;
+        let mut dist = 0;
+        
+        while self.used[idx] {
+            if self.keys[idx] == key {
+                return self.counts[idx];
+            }
+            let probe_dist = ((idx + N - ((self.keys[idx] as usize) % N)) % N) as i32;
+            if dist > probe_dist {
+                return 0;
+            }
+            idx = (idx + 1) % N;
+            dist += 1;
+        }
+        0
+    }
+}
+
+#[inline]
+unsafe fn parse_input_fast_static(input: &[u8]) -> Result<(HeaplessVec<u32, 2000>, HeaplessVec<u32, 2000>), Box<dyn std::error::Error>> {
+    const LINE_LENGTH: usize = 14;
+    
+    let elements = input.len() / LINE_LENGTH;
+    if elements > 2000 {
+        return Err("Input too large for HeaplessVec capacity".into());
+    }
+    
+    let mut x = HeaplessVec::new();
+    let mut y = HeaplessVec::new();
+    
+    for line in input.chunks_exact(LINE_LENGTH) {
+        if x.extend_from_slice(&[parse_digits_simd(&line[0..5])]).is_err() {
+            return Err("Failed to extend x vector".into());
+        }
+        if y.extend_from_slice(&[parse_digits_simd(&line[8..13])]).is_err() {
+            return Err("Failed to extend y vector".into());
+        }
+    }
+
+    Ok((x, y))
+}
+
+#[inline]
+unsafe fn parse_digits_simd(digits: &[u8]) -> u32 {
+    let digits = _mm_set_epi16(
+        0, 0, 0,
+        *digits.get_unchecked(4) as i16,
+        *digits.get_unchecked(3) as i16,
+        *digits.get_unchecked(2) as i16,
+        *digits.get_unchecked(1) as i16,
+        *digits.get_unchecked(0) as i16,
+    );
+    
+    let nums = _mm_sub_epi16(digits, _mm_set1_epi16(b'0' as i16));
+    
+    let factors = _mm_set_epi16(0, 0, 0, 1, 10, 100, 1000, 10000);
+    
+    let mul: [u32; 4] = mem::transmute(_mm_madd_epi16(nums, factors));
+    
+    mul[0] + mul[1] + mul[2]
 }
 
 fn parse_input_fast(input: &str) -> Result<(Vec<u32>, Vec<u32>), Box<dyn std::error::Error>> {
     const LINE_LENGTH: usize = 14;
-
     let elements = input.len() / LINE_LENGTH;
     let mut x = Vec::with_capacity(elements);
     let mut y = Vec::with_capacity(elements);
     
-    // Pre-allocate to avoid bounds checks during push
     unsafe {
         x.set_len(elements);
         y.set_len(elements);
-    }
-
-    for (idx, line) in input.as_bytes().chunks_exact(LINE_LENGTH).enumerate() {
-        unsafe {
-            let a0 = (*line.get_unchecked(0) - b'0') as u32 * 10_000;
-            let a1 = (*line.get_unchecked(1) - b'0') as u32 * 1_000;
-            let a2 = (*line.get_unchecked(2) - b'0') as u32 * 100;
-            let a3 = (*line.get_unchecked(3) - b'0') as u32 * 10;
-            let a4 = (*line.get_unchecked(4) - b'0') as u32 * 1;
-            let a = a0 + a1 + a2 + a3 + a4;
-
-            let b0 = (*line.get_unchecked(8) - b'0') as u32 * 10_000;
-            let b1 = (*line.get_unchecked(9) - b'0') as u32 * 1_000;
-            let b2 = (*line.get_unchecked(10) - b'0') as u32 * 100;
-            let b3 = (*line.get_unchecked(11) - b'0') as u32 * 10;
-            let b4 = (*line.get_unchecked(12) - b'0') as u32 * 1;
-            let b = b0 + b1 + b2 + b3 + b4;
-
-            *x.get_unchecked_mut(idx) = a;
-            *y.get_unchecked_mut(idx) = b;
+        
+        for (idx, line) in input.as_bytes().chunks_exact(LINE_LENGTH).enumerate() {
+            *x.get_unchecked_mut(idx) = parse_digits_simd(&line[0..5]);
+            *y.get_unchecked_mut(idx) = parse_digits_simd(&line[8..13]);
         }
     }
 

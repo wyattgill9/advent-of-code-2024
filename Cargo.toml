@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 rustc-hash = "2"
+heapless = "0.7"
 
 
 [profile.release]
