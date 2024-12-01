@@ -12,8 +12,6 @@ fn main() {
         .flatten()
         .map(|l| {
             let bytes = l.as_bytes();
-            debug_assert!(bytes.len() == 13 || bytes.len() == 14, 
-                "Line length must be 13 or 14 bytes, got {}", bytes.len());
             
             let mut n1 = 0u32;
             for &b in bytes.iter().take_while(|&&b| b != b' ') {
@@ -54,9 +52,8 @@ fn main() {
     
     let total_time = total_start.elapsed();
 
-    println!("\nResults:");
-    println!("Total distance: {}", dist);
-    println!("Similarity score: {}", score);
+    println!("{}", dist);
+    println!("{}", score);
     
     println!("\nTiming breakdown:");
     println!("Parsing time:   {:?} ({:.1}%)", parse_time, 100.0 * parse_time.as_secs_f64() / total_time.as_secs_f64());
