@@ -138,7 +138,7 @@ fn part1(input: &str) -> u64 {
 }
 
 fn part2(_input: &str) -> u64 {
-    static DATA: &[u8] = include_bytes!("../../input.txt");
+    static DATA: &[u8] = include_bytes!("input.txt");
     
     let (container1, container2) = unsafe { parse_input_fast_static(DATA).unwrap() };
     let mut map = RobinHoodMap::<100000>::default();
