@@ -5,17 +5,30 @@ edition = "2021"
 
 [dependencies]
 rustc-hash = "2"
-heapless = "0.7"
+regex = "1.10.2"
 
+[dev-dependencies]
+criterion = { version = "2.7.2", package = "codspeed-criterion-compat" }
+
+[[bench]]
+name = "benchmark"
+harness = false
 
 [profile.release]
 lto = true
 codegen-units = 1
 
-[dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
-codspeed-criterion-compat = "2.3.0"
+[lib]
+path = "src/lib.rs"
 
-[[bench]]
-name = "my_benchmark"
-harness = false
+[[bin]]
+name = "day1"
+path = "src/bin/day1.rs"
+
+[[bin]]
+name = "day2"
+path = "src/bin/day2.rs"
+
+[[bin]]
+name = "day3"
+path = "src/bin/day3.rs"
