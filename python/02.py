@@ -23,7 +23,15 @@ def can_be_safe_by_removing_one(report):
             return True
     return False
 
-def count_safe_reports(input_data):
+def count_safe_reports_p1(input_data):
+    safe_count = 0
+    for line in input_data:
+        report = list(map(int, line.split()))
+        if is_safe_report(report):
+            safe_count += 1
+    return safe_count
+
+def count_safe_reports_p2(input_data):
     safe_count = 0
     for line in input_data:
         report = list(map(int, line.split()))
@@ -31,9 +39,8 @@ def count_safe_reports(input_data):
             safe_count += 1
     return safe_count
 
-with open('../../input.txt', 'r') as file:
-    input_data = file.readlines()
+with open('../inputs/day2.txt', 'r') as file:
+    input_data = [line.strip() for line in file.readlines()]
 
-input_data = [line.strip() for line in input_data]
-
-print(count_safe_reports(input_data))
+print(f"Part 1: {count_safe_reports_p1(input_data)}")
+print(f"Part 2: {count_safe_reports_p2(input_data)}")

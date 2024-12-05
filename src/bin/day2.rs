@@ -41,7 +41,24 @@ fn can_be_safe_by_removing_one(report: &[i32]) -> bool {
     false
 }
 
-fn count_safe_reports(input_data: &[String]) -> i32 {
+fn part1(input_data: &[String]) -> i32 {
+    let mut safe_count = 0;
+    
+    for line in input_data {
+        let report: Vec<i32> = line
+            .split_whitespace()
+            .map(|x| x.parse().unwrap())
+            .collect();
+            
+        if is_safe_report(&report) {
+            safe_count += 1;
+        }
+    }
+    
+    safe_count
+}
+
+fn part2(input_data: &[String]) -> i32 {
     let mut safe_count = 0;
     
     for line in input_data {
@@ -59,8 +76,9 @@ fn count_safe_reports(input_data: &[String]) -> i32 {
 }
 
 fn main() {
-    let input = fs::read_to_string("input.txt").expect("Failed to read input file");
+    let input = fs::read_to_string("src/inputs/day2.txt").expect("Failed to read input file");
     let input_data: Vec<String> = input.lines().map(String::from).collect();
     
-    println!("{}", count_safe_reports(&input_data));
+    println!("Part 1: {}", part1(&input_data));
+    println!("Part 2: {}", part2(&input_data));
 }

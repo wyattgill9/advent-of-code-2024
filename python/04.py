@@ -1,6 +1,6 @@
 import os
 
-def read(file_path="input.txt"):
+def read(file_path="../inputs/day4.txt"):
     with open(file_path) as f:
         return [line.strip() for line in f.readlines()]
     

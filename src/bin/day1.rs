@@ -38,7 +38,7 @@ fn main() {
 
     for _ in 0..NUM_RUNS {
         let read_start = Instant::now();
-        let input = std::fs::read_to_string("input.txt").unwrap();
+        let input = std::fs::read_to_string("src/inputs/day1.txt").unwrap();
         read_times.push(read_start.elapsed());
 
         let parse_start = Instant::now();
