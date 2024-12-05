@@ -79,15 +79,33 @@ impl Solution for Day5 {
 }
 
 impl Day5 {
-    #[inline(always)]
+    #[target_feature(enable = "avx2")]
     unsafe fn fast_position(ptr: *const i32, len: usize, target: i32) -> Option<usize> {
-        for i in 0..len {
+        use std::arch::x86_64::*;
+
+        let target_vec = _mm256_set1_epi32(target); 
+        let chunks = len / 8; 
+        let remainder = len % 8;
+
+        for i in 0..chunks {
+            let offset_ptr = ptr.add(i * 8);
+            let vec = _mm256_loadu_si256(offset_ptr as *const __m256i); 
+            let cmp = _mm256_cmpeq_epi32(vec, target_vec);
+            let mask = _mm256_movemask_epi8(cmp); 
+
+            if mask != 0 {
+                let first_match = mask.trailing_zeros() / 4;
+                return Some(i * 8 + first_match as usize);
+            }
+        }
+
+        for i in (len - remainder)..len {
             if *ptr.add(i) == target {
                 return Some(i);
             }
         }
         None
-    }
+    }   
 
     unsafe fn visit(
         node: usize,
