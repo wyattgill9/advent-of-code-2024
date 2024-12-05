@@ -6,9 +6,9 @@ edition = "2021"
 [dependencies]
 rustc-hash = "2"
 regex = "1.10.2"
+criterion = { version = "2.7.2", package = "codspeed-criterion-compat" }
 
 [dev-dependencies]
-criterion = { version = "2.7.2", package = "codspeed-criterion-compat" }
 
 
 [[bench]]
