@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use std::fs;
-use advent_of_code_2024::{Solution, day1::Day1, day2::Day2, day3::Day3, day5::Day5}; //day6::Day6
+use advent_of_code_2024::{Solution,day5::Day5}; // day1::Day1, day2::Day2, day3::Day3,        day6::Day6
 
 // fn benchmark_day1(c: &mut Criterion) {
 //     let input = fs::read_to_string("./inputs/day1.txt").unwrap();
